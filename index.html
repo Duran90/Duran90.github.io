@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Line</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+        #graphic {
+            height: 350px;
+            width: 850px;
+            position: relative;
+            margin: 10em 30% 0 30%;
+        }
+
+        #answer{
+            position: relative;
+        }
+
+        .inputA {
+            position: absolute;
+        }
+
+
+
+        .ex {
+            position: absolute;
+            bottom: 20em;
+            right: 48%;
+            display: inline-block;
+        }
+
+        span {
+            background-color: aliceblue;
+
+        }
+
+    </style>
+
+</head>
+<body>
+<div id="graphic">
+    <canvas id="myCanvas" width="850" height="350">
+        Your browser does not support the canvas element.
+    </canvas>
+</div>
+<script>
+
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+
+
+    const baseLine = canvas.height - canvas.height / 3;
+    const axisLength = 800;
+    const scaleCount = 21;
+    const scaleStep = axisLength / (scaleCount - 1);
+    const startX = 10;
+    var isAGuessed = false;
+    var isBGuessed = false;
+    var a = getRndA();
+    var b = getRndB();
+
+    drawBackground();
+    drawAxis(ctx);
+    drawScale(ctx, scaleCount);
+    drawArrow(ctx);
+    drawNumbers(ctx);
+    drawArc(ctx, startX, a);
+
+    function drawBackground() {
+        var rectX = 0;
+        var rectY = baseLine - 30;
+        var rectWidth = canvas.width;
+        var rectHeight = 100;
+        var cornerRadius = 20;
+
+
+        ctx.save();
+
+        ctx.lineJoin = "round";
+        ctx.lineWidth = cornerRadius;
+        ctx.strokeStyle = '#faefce';
+        ctx.fillStyle = '#faefce';
+        ctx.strokeRect(rectX + (cornerRadius / 2), rectY + (cornerRadius / 2), rectWidth - cornerRadius, rectHeight - cornerRadius);
+        ctx.fillRect(rectX + (cornerRadius / 2), rectY + (cornerRadius / 2), rectWidth - cornerRadius, rectHeight - cornerRadius);
+
+        ctx.restore();
+
+    }
+
+    function drawArc(ctx, start, stepCount) {
+        let length = stepCount * scaleStep + startX;
+        let height = baseLine - (length - start) / 3;
+        ctx.beginPath();
+        ctx.moveTo(start, baseLine);
+        ctx.bezierCurveTo(start, height, length, height, length, baseLine);
+        ctx.strokeStyle = '#ff0000';
+        ctx.stroke();
+
+        addInput((length + start) / 2, canvas.height - height);
+    }
+
+    function addInput(x, y) {
+        var inputA = document.createElement('input');
+
+        inputA.type = 'text';
+        inputA.className = 'inputA';
+
+        inputA.style.left = x + 'px';
+        inputA.style.bottom = y  + 'px';
+        inputA.oninput = onInput;
+        inputA.size = 1;
+
+        inputA.onkeyup = handleEnter;
+
+        document.getElementById('graphic').appendChild(inputA);
+
+        inputA.focus();
+
+    }
+
+    function onInput() {
+        console.log(document.getElementById('answer').value);
+        this.value = this.value.replace(/[^0-9]/g, '');
+
+    }
+
+    function handleEnter(e) {
+        var keyCode = e.keyCode;
+        this.style.color = '#000000';
+        if (keyCode === 13) {
+            var value = this.value;
+            console.log(this.style.left, this.style.bottom);
+            if (!isAGuessed && value != a) {
+
+                $('.numA').css('background-color', 'orange');
+                this.style.color = '#ff0000';
+            }else if (!isAGuessed && value == a) {
+                console.log(a);
+                $('.numA').css('background-color', 'white');
+                isAGuessed = true;
+                drawText(this.value, "bold 11pt arial", parseInt(this.style.left, 10), canvas.height - parseInt(this.style.bottom));
+                document.getElementById('graphic').removeChild(this);
+                drawArc(ctx, a * scaleStep + startX, a + b);
+                isAGuessed = true;
+            } else if (value != b) {
+                $('.numB').css('background-color', 'orange');
+                this.style.color = '#ff0000';
+            }else if (value == b) {
+                isBGuessed = true;
+                $('.numB').css('background-color', 'white');
+
+                drawText(this.value, "bold 11pt arial", parseInt(this.style.left, 10), canvas.height - parseInt(this.style.bottom, 10));
+                document.getElementById('graphic').removeChild(this);
+                $('#answer').remove();
+                let elem = '<input id ="answer" type="text" size="1" oninput= "this.value = this.value.replace(/[^0-9]/g, \'\')" onkeyup= "myFunc(event)">';
+                $('#ansInput').append(elem);
+                $('#answer').focus();
+            }
+
+        }
+
+    }
+
+
+    function myFunc(event) {
+        let key = event.keyCode;
+
+        var ans = document.getElementById("answer");
+        var equ = a + b;
+        if(key == 13){
+
+            if (ans.value == equ) {
+                console.log(ans.value);
+                $('#answer').remove();
+                let elem = '<span id="answer">' + equ + '<span/>';
+                $('#ansInput').append(elem);
+            }else {
+                $('#answer').css('color','red')
+            }
+        }
+    }
+
+    function drawText(txt, font, x, y) {
+        console.log(x, y);
+        ctx.textBaseline = 'bottom';
+        ctx.textAlign = 'center';
+        ctx.font = font;
+        ctx.fillText(txt, x, y);
+    }
+
+    function drawNumbers() {
+        for (let num = 0; num < scaleCount; num++) {
+            drawText(num.toString(), (num % 5 === 0 ? "bold 11pt" : "10pt") + " arial",
+                scaleStep * num + startX, baseLine + 30);
+        }
+    }
+
+    function drawArrow(ctx) {
+        let start = axisLength + startX;
+        let end = axisLength + startX + 30;
+
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+        ctx.moveTo(start, baseLine);
+        ctx.lineTo(end, baseLine);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(end, baseLine);
+        ctx.lineTo(end - 10, baseLine - 10);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(end, baseLine);
+        ctx.lineTo(end - 10, baseLine + 10);
+        ctx.stroke();
+    }
+
+    function drawAxis(ctx) {
+        console.log(canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(startX, baseLine);
+        ctx.lineTo(startX + axisLength, baseLine);
+        ctx.stroke();
+    }
+
+    function drawScale(ctx, scaleCount) {
+        for (let i = 0; i < scaleCount; i++) {
+            let width = i % 5 == 0 ? 3 : 1;
+            let height = i % 5 == 0 ? 10 : 5;
+            strokeLine(ctx, i * scaleStep + startX, height, width);
+        }
+    }
+
+    function strokeLine(ctx, x, y, width) {
+        ctx.beginPath();
+        ctx.lineWidth = width;
+        ctx.moveTo(x, baseLine - y);
+        ctx.lineTo(x, baseLine + y);
+        ctx.stroke();
+    }
+
+    function getRndA() {
+        return Math.floor(Math.random() * (10 - 6)) + 6;
+
+    }
+
+    function getRndB() {
+        return Math.floor(Math.random() * ((15 - a) - (11 - a))) + (11 - a);
+    }
+
+
+</script>
+
+<script>
+    let elem = '<div class="ex"><span class="numA">' + a + '<span/><span>'+' '+'+'+' '+'</span><span class="numB">' + b + '</span><span>'+' '+'='+' '+'</span><span id="ansInput"><span id="answer">?<span/></span></div>';
+    $("#graphic").append(elem);
+
+</script>
+
+</body>
+</html>
